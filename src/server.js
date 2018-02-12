@@ -18,8 +18,6 @@ console.log(`Listening on 127.0.0.1: ${port}`);
 
 const io = socketio(app);
 
-const users = {};
-
 const square = {
   lastUpdate: new Date().getTime(),
   x: 0,
