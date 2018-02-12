@@ -1,13 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script type="text/babel" >
         "use strict";
-    
+        let canvas;
+        let ctx;
+        
+        let socket;
+
+        const user = `user${(Math.floor((Math.random() * 1000)) + 1)}`;
+
+        let draws = {};
+
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let keys = Object.keys(draws);
+            
+            for(let i = 0; i < keys.length; i++){
+                const drawCall = draws[ keys[i] ];
+                
+                if(keys[i] != user) {
+                    ctx.fillStyle = 'red';
+                }
+                else {
+                    ctx.fillStyle = 'black';
+                }
+                
+                ctx.fillRect(drawCall.x, drawCall.y, drawCall.width, drawCall.height);
+            }
+        };
+
+        const setup = () => {
+            const time = new Date().getTime();
+            let x = Math.floor(Math.random() * (300 - 10) + 10);
+            let y = Math.floor(Math.random() * (300 - 10) + 10);
+            draws[user] = {lastUpdate: time, x: x, y: y, width: 100, height: 100};
+        };
+
+        const handleMessage = (data) => {
+            if(!draws[data.name]){
+                draws[data.name] = data.coords;
+            }
+            else if(data.coords.lastUpdate > draws[data.name].lastUpdate){
+                draws[data.name] = data.coords;
+            }
+            
+            draw();
+        }
+
+        const init = () => {
+            canvas = document.querySelector("#cav");
+            ctx = canvas.getContext('2d');
+            
+            socket = io.connect();
+            
+            socket.on('connect', function() {
+                setup();
+                
+                setInterval( () => {
+                    const time = new Date().getTime();
+                    
+                    draws[user].lastUpdate = time;
+                    draws[user].x += 5;
+                    
+                    socket.emit('draw', { name: user, coords: draws[user] });
+                    
+                    draw();
+                }, 3000);
+            });
+            
+            socket.on('update', handleMessage);
+        };
+
+        window.onload = init;
     </script>
 </head>
 <body>
-
+    <canvas id="cav" height="500" width="500"></canvas>
 </body>
 </html>
